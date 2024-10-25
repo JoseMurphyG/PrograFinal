@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # PrograFinal
 
 # Chatbot Error Logging
@@ -60,3 +61,7 @@ public class ErrorLog {
     @JoinColumn(name = "chat_message_id")
     private ChatMessage chatMessage;
 }
+=======
+# Telegram
+Bot Telegram con Chatgpt
+>>>>>>> d976445 (Cruds de las tabas client y request)
