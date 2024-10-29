@@ -74,6 +74,12 @@
             <artifactId>mysql-connector-j</artifactId>
             <scope>runtime</scope>
 	</dependency>
+	 <dependency>
+	  <groupId>org.telegram</groupId>
+	  <artifactId>telegrambots</artifactId>
+	  <version>6.3.0</version>
+	  <type>jar</type>
+	 </dependency>
 	</dependencies>
 	<dependencyManagement>
 		<dependencies>
