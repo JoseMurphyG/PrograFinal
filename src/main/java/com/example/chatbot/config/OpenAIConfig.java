@@ -8,7 +8,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 public class OpenAIConfig {
 
     @Bean
-    public WebClient webClient() {
+    public WebClient webClient1() {
         return WebClient.builder()
                 .baseUrl("https://api.openai.com/v1/")
                 .defaultHeader("Authorization", "Bearer " + System.getenv("OPENAI_API_KEY"))
