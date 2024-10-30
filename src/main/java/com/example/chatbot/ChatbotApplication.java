@@ -3,7 +3,9 @@ package com.example.chatbot;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-import org.springframework.web.reactive.function.client.WebClient;
+import org.telegram.telegrambots.meta.TelegramBotsApi;
+import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
+import com.example.chatbot.service.TelegramBotConfig;
 
 @SpringBootApplication
 public class ChatbotApplication {
@@ -13,9 +15,9 @@ public class ChatbotApplication {
     }
 
     @Bean
-    public WebClient webClient() {
-        return WebClient.builder()
-                .baseUrl("https://api.openai.com/v1/")
-                .build();
+    public TelegramBotsApi telegramBotsApi(TelegramBotConfig botConfig) throws Exception {
+        TelegramBotsApi botsApi = new TelegramBotsApi(DefaultBotSession.class);
+        botsApi.registerBot(botConfig);
+        return botsApi;
     }
 }
