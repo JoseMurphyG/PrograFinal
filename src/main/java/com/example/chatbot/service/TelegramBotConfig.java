@@ -1,5 +1,7 @@
 package com.example.chatbot.service;
 
+import com.example.chatbot.model.ErrorLog;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -22,7 +24,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Component
+@RequiredArgsConstructor
 public class TelegramBotConfig extends TelegramLongPollingBot {
+
+    private final ErrorLogService errorLogService;
 
     @Value("${telegram.bot.token}")
     private String botToken;
@@ -33,7 +38,7 @@ public class TelegramBotConfig extends TelegramLongPollingBot {
     @Value("${openai.api.key}")
     private String openAiApiKey;
 
-    private Map<Long, String> userState = new HashMap<>();
+    private Map<String, String> userState = new HashMap<>();  // Change to String for chatId
 
     @Override
     public String getBotToken() {
@@ -49,37 +54,64 @@ public class TelegramBotConfig extends TelegramLongPollingBot {
     public void onUpdateReceived(Update update) {
         if (update.hasMessage() && update.getMessage().hasText()) {
             String messageText = update.getMessage().getText();
-            long chatId = update.getMessage().getChatId();
-
-            String response = handleUserInteraction(chatId, messageText);
-
-            SendMessage message = new SendMessage();
-            message.setChatId(chatId);
-            message.setText(response);
+            String chatId = String.valueOf(update.getMessage().getChatId());  // Change to String
+            String username = update.getMessage().getFrom().getUserName();
 
             try {
-                execute(message);
-            } catch (TelegramApiException e) {
-                e.printStackTrace();
+                String response = handleUserInteraction(chatId, messageText);
+                sendMessage(chatId, response);  // Use String here
+            } catch (Exception e) {
+                // Registrar el error
+                errorLogService.logError(e, chatId, username);  // Use String chatId
+                // Enviar mensaje de error al usuario
+                sendErrorMessage(chatId);
             }
         }
     }
 
-    private String handleUserInteraction(long chatId, String messageText) {
-        String response;
-        if (!userState.containsKey(chatId)) {
-            response = "¡Hola! ¿Cuál es tu nombre?";
-            userState.put(chatId, "ASKED_NAME");
-        } else if ("ASKED_NAME".equals(userState.get(chatId))) {
-            response = "¡Mucho gusto, " + messageText + "! ¿Qué te gustaría saber?";
-            userState.put(chatId, "ASKED_TOPIC");
-        } else if ("ASKED_TOPIC".equals(userState.get(chatId))) {
-            response = callChatGPT(messageText);
-            userState.put(chatId, "DONE");
-        } else {
-            response = "¡Gracias por la conversación! Puedes preguntarme más cosas si lo deseas.";
+    private void sendMessage(String chatId, String text) {  // Change to String
+        try {
+            SendMessage message = new SendMessage();
+            message.setChatId(chatId);  // Use String chatId
+            message.setText(text);
+            execute(message);
+        } catch (TelegramApiException e) {
+            String username = "unknown"; // En caso de que no podamos obtener el username en este punto
+            errorLogService.logError(e, chatId, username);  // Use String chatId
         }
-        return response;
+    }
+
+    private void sendErrorMessage(String chatId) {  // Change to String
+        try {
+            SendMessage errorMessage = new SendMessage();
+            errorMessage.setChatId(chatId);  // Use String chatId
+            errorMessage.setText("Lo siento, ha ocurrido un error al procesar tu solicitud. Por favor, inténtalo de nuevo más tarde.");
+            execute(errorMessage);
+        } catch (TelegramApiException e) {
+            // Si falla incluso el envío del mensaje de error, solo lo registramos
+            System.err.println("Error al enviar mensaje de error: " + e.getMessage());
+        }
+    }
+
+    private String handleUserInteraction(String chatId, String messageText) {  // Change to String
+        try {
+            String response;
+            if (!userState.containsKey(chatId)) {
+                response = "¡Hola! ¿Cuál es tu nombre?";
+                userState.put(chatId, "ASKED_NAME");
+            } else if ("ASKED_NAME".equals(userState.get(chatId))) {
+                response = "¡Mucho gusto, " + messageText + "! ¿Qué te gustaría saber?";
+                userState.put(chatId, "ASKED_TOPIC");
+            } else if ("ASKED_TOPIC".equals(userState.get(chatId))) {
+                response = callChatGPT(messageText);
+                userState.put(chatId, "DONE");
+            } else {
+                response = "¡Gracias por la conversación! Puedes preguntarme más cosas si lo deseas.";
+            }
+            return response;
+        } catch (Exception e) {
+            throw new RuntimeException("Error en el manejo de la interacción del usuario", e);
+        }
     }
 
     private String callChatGPT(String userMessage) {
@@ -105,8 +137,7 @@ public class TelegramBotConfig extends TelegramLongPollingBot {
                         .getJSONObject("message")
                         .getString("content");
             } catch (IOException | ParseException e) {
-                e.printStackTrace();
-                responseMessage = "Lo siento, hubo un error al procesar tu solicitud.";
+                throw new RuntimeException("Error al procesar la respuesta de ChatGPT", e);
             }
         } catch (IOException e) {
             throw new RuntimeException("Error al conectar con ChatGPT", e);
