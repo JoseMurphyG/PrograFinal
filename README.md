@@ -1,6 +1,8 @@
 <<<<<<< HEAD
 # PrograFinal
 
+Favor revisar la rama felix Alli es donde estan las modificaciones 
+
 # Chatbot Error Logging
 
 Este proyecto contiene un sistema de registro de errores para capturar y almacenar excepciones ocurridas durante la ejecución del chatbot. Utiliza una entidad llamada `ErrorLog` para almacenar detalles sobre los errores y un servicio `ErrorLogService` para gestionar el registro y recuperación de errores.
